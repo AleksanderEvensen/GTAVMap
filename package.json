@@ -6,13 +6,17 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "start": "sirv public --no-clear",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "deploy": "node ./gh-pages.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",
     "@rollup/plugin-node-resolve": "^11.0.0",
     "@rollup/plugin-typescript": "^8.0.0",
     "@tsconfig/svelte": "^2.0.0",
+    "@types/leaflet": "^1.7.5",
+    "@types/lodash": "^4.14.174",
+    "gh-pages": "^3.2.3",
     "rollup": "^2.3.4",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.0",
@@ -26,6 +30,7 @@
   },
   "dependencies": {
     "leaflet": "^1.7.1",
+    "lodash": "^4.17.21",
     "sirv-cli": "^1.0.0"
   }
 }
