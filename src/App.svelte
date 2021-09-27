@@ -1,18 +1,16 @@
 <script lang="ts">
-    import L from 'leaflet';
-    import { gameToMap, mapCenter, mapToGame } from './utils';
-    import Map from './Map.svelte';
-    import GameMarker from './Markers/GameMarker.svelte';
+    import Map from './MapRendering/Map.svelte';
+    import GameMarker from './MapRendering/Markers/GameMarker.svelte';
+    import Sidebar from './Controls/Sidebar.svelte';
 </script>
 
 <Map>
-    <GameMarker text="Hello World" position={[100,100]} draggable={true} />
-    <GameMarker text="Hello World" position={[200,200]} />
+    <GameMarker text="Hello World 1" position={[200,200]} draggable={true} icon="https://docs.fivem.net/blips/radar_level.png" />
+    <GameMarker text="Hello World 2" position={[200,200]} draggable={true} icon="" />
     <GameMarker text="Hello World" position={[300,100]} />
     <GameMarker text="Hello World" position={[400,-400]} />
     <GameMarker text="Hello World" position={[500,100]} />
     <GameMarker text="Hello World" position={[600,700]} />
 </Map>
 
-<style>
-</style>
+<Sidebar />

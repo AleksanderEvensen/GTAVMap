@@ -1,7 +1,7 @@
 <script lang="ts">
     import { setContext } from "svelte";
     import L from 'leaflet';
-    import { mapCenter } from './utils';
+    import { mapCenter } from '../utils';
     let map;
 
     setContext('gtavmap', {
