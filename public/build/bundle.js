@@ -113,6 +113,14 @@ var app = (function () {
         else if (node.getAttribute(attribute) !== value)
             node.setAttribute(attribute, value);
     }
+    function set_custom_element_data(node, prop, value) {
+        if (prop in node) {
+            node[prop] = typeof node[prop] === 'boolean' && value === '' ? true : value;
+        }
+        else {
+            attr(node, prop, value);
+        }
+    }
     function children(element) {
         return Array.from(element.childNodes);
     }
@@ -14611,7 +14619,7 @@ var app = (function () {
     			center: mapCenter,
     			// preferCanvas: true,
     			crs: leafletSrc.CRS.Simple
-    		}).setView(mapCenter, 7);
+    		}).setView(mapCenter, 5);
 
     		leafletSrc.tileLayer('https://s.rsg.sc/sc/images/games/GTAV/map/game/{z}/{x}/{y}.jpg', {
     			attribution: 'Map provided by <a href="https://www.rockstargames.com/" target="_blank">Rockstar Games</a>',
@@ -32060,13 +32068,13 @@ var app = (function () {
     			attr_dev(path, "stroke-linejoin", "round");
     			attr_dev(path, "stroke-width", "2");
     			attr_dev(path, "d", "M15 19l-7-7 7-7");
-    			add_location(path, file, 15, 16, 673);
+    			add_location(path, file, 15, 16, 639);
     			attr_dev(svg, "xmlns", "http://www.w3.org/2000/svg");
     			attr_dev(svg, "class", "h-6 w-6");
     			attr_dev(svg, "fill", "none");
     			attr_dev(svg, "viewBox", "0 0 24 24");
     			attr_dev(svg, "stroke", "currentColor");
-    			add_location(svg, file, 14, 12, 545);
+    			add_location(svg, file, 14, 12, 511);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, svg, anchor);
@@ -32101,13 +32109,13 @@ var app = (function () {
     			attr_dev(path, "stroke-linejoin", "round");
     			attr_dev(path, "stroke-width", "2");
     			attr_dev(path, "d", "M9 5l7 7-7 7");
-    			add_location(path, file, 11, 16, 405);
+    			add_location(path, file, 11, 16, 371);
     			attr_dev(svg, "xmlns", "http://www.w3.org/2000/svg");
     			attr_dev(svg, "class", "h-6 w-6");
     			attr_dev(svg, "fill", "none");
     			attr_dev(svg, "viewBox", "0 0 24 24");
     			attr_dev(svg, "stroke", "currentColor");
-    			add_location(svg, file, 10, 12, 277);
+    			add_location(svg, file, 10, 12, 243);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, svg, anchor);
@@ -32130,8 +32138,37 @@ var app = (function () {
     }
 
     function create_fragment$1(ctx) {
-    	let div1;
-    	let div0;
+    	let sidebar;
+    	let sidebar_thumb;
+    	let t0;
+    	let sidebar_content;
+    	let h1;
+    	let t2;
+    	let seperator0;
+    	let t4;
+    	let split0;
+    	let input0;
+    	let t5;
+    	let input1;
+    	let t6;
+    	let seperator1;
+    	let t8;
+    	let input2;
+    	let t9;
+    	let split1;
+    	let input3;
+    	let t10;
+    	let input4;
+    	let t11;
+    	let button0;
+    	let t13;
+    	let seperator2;
+    	let t15;
+    	let textarea;
+    	let t16;
+    	let button1;
+    	let t18;
+    	let seperator3;
     	let mounted;
     	let dispose;
 
@@ -32145,25 +32182,135 @@ var app = (function () {
 
     	const block = {
     		c: function create() {
-    			div1 = element("div");
-    			div0 = element("div");
+    			sidebar = element("sidebar");
+    			sidebar_thumb = element("sidebar-thumb");
     			if_block.c();
-    			attr_dev(div0, "class", "sidebar-thumb svelte-1lg3n3b");
-    			add_location(div0, file, 8, 4, 184);
-    			attr_dev(div1, "class", "sidebar-container svelte-1lg3n3b");
-    			toggle_class(div1, "open", /*sidebarOpen*/ ctx[0]);
-    			add_location(div1, file, 7, 0, 122);
+    			t0 = space();
+    			sidebar_content = element("sidebar-content");
+    			h1 = element("h1");
+    			h1.textContent = "GTA V Map";
+    			t2 = space();
+    			seperator0 = element("seperator");
+    			seperator0.textContent = "Debug Marker";
+    			t4 = space();
+    			split0 = element("split");
+    			input0 = element("input");
+    			t5 = space();
+    			input1 = element("input");
+    			t6 = space();
+    			seperator1 = element("seperator");
+    			seperator1.textContent = "New Marker";
+    			t8 = space();
+    			input2 = element("input");
+    			t9 = space();
+    			split1 = element("split");
+    			input3 = element("input");
+    			t10 = space();
+    			input4 = element("input");
+    			t11 = space();
+    			button0 = element("button");
+    			button0.textContent = "Create Marker";
+    			t13 = space();
+    			seperator2 = element("seperator");
+    			seperator2.textContent = "Multiple";
+    			t15 = space();
+    			textarea = element("textarea");
+    			t16 = space();
+    			button1 = element("button");
+    			button1.textContent = "Create Marker(s)";
+    			t18 = space();
+    			seperator3 = element("seperator");
+    			seperator3.textContent = "Active Markers";
+    			set_custom_element_data(sidebar_thumb, "class", "svelte-1xyhtvh");
+    			add_location(sidebar_thumb, file, 8, 4, 162);
+    			attr_dev(h1, "class", "svelte-1xyhtvh");
+    			add_location(h1, file, 21, 8, 823);
+    			attr_dev(seperator0, "class", "svelte-1xyhtvh");
+    			add_location(seperator0, file, 23, 8, 853);
+    			attr_dev(input0, "type", "number");
+    			attr_dev(input0, "placeholder", "x-position");
+    			attr_dev(input0, "class", "svelte-1xyhtvh");
+    			add_location(input0, file, 25, 12, 919);
+    			attr_dev(input1, "type", "number");
+    			attr_dev(input1, "placeholder", "y-position");
+    			attr_dev(input1, "class", "svelte-1xyhtvh");
+    			add_location(input1, file, 26, 12, 979);
+    			attr_dev(split0, "class", "svelte-1xyhtvh");
+    			add_location(split0, file, 24, 8, 898);
+    			attr_dev(seperator1, "class", "svelte-1xyhtvh");
+    			add_location(seperator1, file, 30, 8, 1065);
+    			attr_dev(input2, "class", "fill svelte-1xyhtvh");
+    			attr_dev(input2, "type", "text");
+    			attr_dev(input2, "placeholder", "Name");
+    			add_location(input2, file, 31, 8, 1108);
+    			attr_dev(input3, "type", "number");
+    			attr_dev(input3, "placeholder", "x-position");
+    			attr_dev(input3, "class", "svelte-1xyhtvh");
+    			add_location(input3, file, 33, 12, 1190);
+    			attr_dev(input4, "type", "number");
+    			attr_dev(input4, "placeholder", "y-position");
+    			attr_dev(input4, "class", "svelte-1xyhtvh");
+    			add_location(input4, file, 34, 12, 1250);
+    			attr_dev(split1, "class", "svelte-1xyhtvh");
+    			add_location(split1, file, 32, 8, 1169);
+    			attr_dev(button0, "class", "fill svelte-1xyhtvh");
+    			add_location(button0, file, 36, 8, 1324);
+    			attr_dev(seperator2, "class", "svelte-1xyhtvh");
+    			add_location(seperator2, file, 39, 8, 1397);
+    			attr_dev(textarea, "class", "fill svelte-1xyhtvh");
+    			attr_dev(textarea, "cols", "30");
+    			attr_dev(textarea, "rows", "10");
+    			attr_dev(textarea, "placeholder", "Enter coords here...");
+    			add_location(textarea, file, 40, 8, 1438);
+    			attr_dev(button1, "class", "fill svelte-1xyhtvh");
+    			add_location(button1, file, 41, 8, 1537);
+    			attr_dev(seperator3, "class", "svelte-1xyhtvh");
+    			add_location(seperator3, file, 44, 8, 1605);
+    			set_custom_element_data(sidebar_content, "class", "svelte-1xyhtvh");
+    			add_location(sidebar_content, file, 20, 4, 796);
+    			attr_dev(sidebar, "class", "svelte-1xyhtvh");
+    			toggle_class(sidebar, "open", /*sidebarOpen*/ ctx[0]);
+    			add_location(sidebar, file, 7, 0, 122);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, div1, anchor);
-    			append_dev(div1, div0);
-    			if_block.m(div0, null);
+    			insert_dev(target, sidebar, anchor);
+    			append_dev(sidebar, sidebar_thumb);
+    			if_block.m(sidebar_thumb, null);
+    			append_dev(sidebar, t0);
+    			append_dev(sidebar, sidebar_content);
+    			append_dev(sidebar_content, h1);
+    			append_dev(sidebar_content, t2);
+    			append_dev(sidebar_content, seperator0);
+    			append_dev(sidebar_content, t4);
+    			append_dev(sidebar_content, split0);
+    			append_dev(split0, input0);
+    			append_dev(split0, t5);
+    			append_dev(split0, input1);
+    			append_dev(sidebar_content, t6);
+    			append_dev(sidebar_content, seperator1);
+    			append_dev(sidebar_content, t8);
+    			append_dev(sidebar_content, input2);
+    			append_dev(sidebar_content, t9);
+    			append_dev(sidebar_content, split1);
+    			append_dev(split1, input3);
+    			append_dev(split1, t10);
+    			append_dev(split1, input4);
+    			append_dev(sidebar_content, t11);
+    			append_dev(sidebar_content, button0);
+    			append_dev(sidebar_content, t13);
+    			append_dev(sidebar_content, seperator2);
+    			append_dev(sidebar_content, t15);
+    			append_dev(sidebar_content, textarea);
+    			append_dev(sidebar_content, t16);
+    			append_dev(sidebar_content, button1);
+    			append_dev(sidebar_content, t18);
+    			append_dev(sidebar_content, seperator3);
 
     			if (!mounted) {
-    				dispose = listen_dev(div0, "click", /*toggleSidebar*/ ctx[1], false, false, false);
+    				dispose = listen_dev(sidebar_thumb, "click", /*toggleSidebar*/ ctx[1], false, false, false);
     				mounted = true;
     			}
     		},
@@ -32174,18 +32321,18 @@ var app = (function () {
 
     				if (if_block) {
     					if_block.c();
-    					if_block.m(div0, null);
+    					if_block.m(sidebar_thumb, null);
     				}
     			}
 
     			if (dirty & /*sidebarOpen*/ 1) {
-    				toggle_class(div1, "open", /*sidebarOpen*/ ctx[0]);
+    				toggle_class(sidebar, "open", /*sidebarOpen*/ ctx[0]);
     			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(div1);
+    			if (detaching) detach_dev(sidebar);
     			if_block.d();
     			mounted = false;
     			dispose();

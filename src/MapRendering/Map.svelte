@@ -14,7 +14,7 @@
             center: mapCenter,
             // preferCanvas: true,
             crs: L.CRS.Simple  
-        }).setView(mapCenter, 7);
+        }).setView(mapCenter, 5);
 
         L.tileLayer('https://s.rsg.sc/sc/images/games/GTAV/map/game/{z}/{x}/{y}.jpg', {
             attribution: 'Map provided by <a href="https://www.rockstargames.com/" target="_blank">Rockstar Games</a>',
