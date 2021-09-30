@@ -8,7 +8,7 @@ export function gameToMap(x,y):[number, number] {
 }
 
 export function mapToGame(lat, lon):[number, number] {
-    return [(lat-mapCenter[0]) / (latPr100/100), (lon-mapCenter[1]) / (latPr100/100)];
+    return [(lon-mapCenter[1]) / (latPr100/100), (lat-mapCenter[0]) / (latPr100/100)];
 }
 
 export {mapCenter, latPr100};

@@ -1,40 +1,37 @@
 <script lang="ts">
     import { getContext, onMount, onDestroy } from 'svelte';
     import L from 'leaflet';
-    import { gameToMap } from '../../utils';
-    import _ from 'lodash';
+    import { gameToMap, mapToGame } from '../../utils';
+    import { debugMarker, setDebugMarker } from '../../stores/markerStore';
+    import { DebugMarkerIcon } from '../MapIcons';
 
     type Position = [number, number];
 
-    export let text:string = "";
-    export let position:Position;
-    export let draggable:boolean = false;
-    export let icon:L.Icon = null;
 
     const context:any = getContext('gtavmap');
     let marker: L.Marker;
 
+    let position: Position = $debugMarker;
+
     $: {
+        position = $debugMarker;
         if (marker != null) {
             marker.setLatLng(L.latLng(...gameToMap(...position)));
         }
     }
+
     onMount(() => {
         const map: L.Map = context.getMap();
-        let defaultIcon = new L.Icon.Default({
-            imagePath: 'https://unpkg.com/leaflet@1.7.1/dist/images/'
-        });
-
-
         marker = L.marker(L.latLng(...gameToMap(...position)), {
-            draggable: draggable,
-            icon: (icon ? icon : defaultIcon),
+            draggable: true,
+            icon: DebugMarkerIcon,
             
         });
-        if(!_.isEmpty(text)) {
-            marker.bindPopup(text);
-        }
         marker.addTo(map);
+        marker.on('drag', () => {
+            const latlng: L.LatLng = marker.getLatLng();
+            setDebugMarker(...mapToGame(latlng.lat, latlng.lng));
+        })
     });
     onDestroy(()=> {
         marker.remove();

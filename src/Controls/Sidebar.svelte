@@ -1,9 +1,37 @@
 <script lang="ts">
+import { DebugMarkerIcon } from '../MapRendering/MapIcons';
+
+
+    import { debugMarker, setDebugMarker } from '../stores/markerStore';
+
+
     let sidebarOpen = true;
 
     function toggleSidebar() {
         sidebarOpen = !sidebarOpen;
     }
+
+
+    function hasElementFocus(element:HTMLElement | HTMLElement[]) {
+        if(Array.isArray(element)) {
+            return element.some(e => e === document.activeElement);
+        }
+        return document.activeElement === element;
+    }
+
+    
+    // Updating the debug marker information
+    $: setDebugMarker(debugPosX, debugPosY);
+    let debugPosX = $debugMarker[0];
+    let debugPosY = $debugMarker[1];
+    let xPosElem:HTMLInputElement = null;
+    let yPosElem:HTMLInputElement = null;    
+    $: {
+        if (debugPosX !== $debugMarker[0] && !hasElementFocus([xPosElem, yPosElem])) debugPosX = Math.round($debugMarker[0]*100000)/100000;
+        if (debugPosY !== $debugMarker[1] && !hasElementFocus([xPosElem, yPosElem])) debugPosY = Math.round($debugMarker[1]*100000)/100000;
+    }
+
+
 </script>
 
 
@@ -25,8 +53,8 @@
 
         <seperator>Debug Marker</seperator>
         <split>
-            <input type="number" placeholder="x-position">
-            <input type="number" placeholder="y-position">
+            <input bind:value={debugPosX} bind:this={xPosElem} type="number" placeholder="x-position">
+            <input bind:value={debugPosY} bind:this={yPosElem} type="number" placeholder="y-position">
         </split>
 
         
@@ -45,6 +73,7 @@
         
 
         <seperator>Active Markers</seperator>
+        <button class="fill">Clear All</button>
         
     </sidebar-content>
 </sidebar>
