@@ -15,9 +15,7 @@
     let marker: L.Marker;
 
     $: {
-        if (marker != null) {
-            marker.setLatLng(L.latLng(...gameToMap(...position)));
-        }
+        marker?.setLatLng(L.latLng(...gameToMap(...position)));
     }
     onMount(() => {
         const map: L.Map = context.getMap();
@@ -25,8 +23,9 @@
             imagePath: 'https://unpkg.com/leaflet@1.7.1/dist/images/'
         });
 
+        let gamePos = gameToMap(...position)
 
-        marker = L.marker(L.latLng(...gameToMap(...position)), {
+        marker = L.marker(L.latLng(...gamePos), {
             draggable: draggable,
             icon: (icon ? icon : defaultIcon),
             

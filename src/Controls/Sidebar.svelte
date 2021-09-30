@@ -1,9 +1,6 @@
 <script lang="ts">
-import { DebugMarkerIcon } from '../MapRendering/MapIcons';
-
-
-    import { debugMarker, setDebugMarker } from '../stores/markerStore';
-
+    import { addGameMarker, debugMarker, setDebugMarker, removeMarker, markers } from '../stores/markerStore';
+    import _ from 'lodash';
 
     let sidebarOpen = true;
 
@@ -29,6 +26,37 @@ import { DebugMarkerIcon } from '../MapRendering/MapIcons';
     $: {
         if (debugPosX !== $debugMarker[0] && !hasElementFocus([xPosElem, yPosElem])) debugPosX = Math.round($debugMarker[0]*100000)/100000;
         if (debugPosY !== $debugMarker[1] && !hasElementFocus([xPosElem, yPosElem])) debugPosY = Math.round($debugMarker[1]*100000)/100000;
+    }
+
+
+    let newMarkerName = null;
+    let newMarkerX = null;
+    let newMarkerY = null;
+
+    function addNewMarker() {
+        if(newMarkerName === null || newMarkerX === null || newMarkerY === null || _.isEmpty(newMarkerName)) return;
+        
+
+        addGameMarker(newMarkerX, newMarkerY, newMarkerName);
+
+        newMarkerName = null;
+        newMarkerX = null;
+        newMarkerY = null;
+    }
+
+    let multipleContent = null;
+
+    function processMultiple() {
+        multipleContent.split('\n').forEach(line => {
+            let [x, y, name, content] = line.replace(/\s+/g, '').split(',');
+            if(_.isEmpty(name) || _.isEmpty(x) || _.isEmpty(y)) return;
+
+            addGameMarker(parseFloat(x) ?? 0, parseFloat(y) ?? 0, name, content);
+
+        });
+
+
+        multipleContent = null;
     }
 
 
@@ -59,22 +87,31 @@ import { DebugMarkerIcon } from '../MapRendering/MapIcons';
 
         
         <seperator>New Marker</seperator>
-        <input class="fill" type="text" placeholder="Name">
+        <input class="fill" type="text" bind:value={newMarkerName} placeholder="Name">
         <split>
-            <input type="number" placeholder="x-position">
-            <input type="number" placeholder="y-position">
+            <input type="number" bind:value={newMarkerX} placeholder="x-position">
+            <input type="number" bind:value={newMarkerY} placeholder="y-position">
         </split>
-        <button class="fill">Create Marker</button>
+        <button class="fill" on:click={addNewMarker}>Create Marker</button>
         
         
         <seperator>Multiple</seperator>
-        <textarea class="fill" cols="30" rows="10" placeholder="Enter coords here..."></textarea>
-        <button class="fill">Create Marker(s)</button>
+        <p>
+            Syntax: (* means required)<br>
+            x-coord*, y-coord*, name*, content
+        </p>
+        <textarea bind:value={multipleContent} class="fill" cols="30" rows="10" placeholder="Enter coords here..."></textarea>
+        <button class="fill" on:click={processMultiple}>Create Marker(s)</button>
         
 
         <seperator>Active Markers</seperator>
-        <button class="fill">Clear All</button>
-        
+        <button class="fill" on:click={()=>markers.update(()=>[])}>Clear All</button>
+        {#each $markers as marker}
+            <marker-item>
+                <marker-name>{marker.label}</marker-name>
+                <button on:click={()=>removeMarker(marker.id)}>Delete</button>
+            </marker-item>
+        {/each}
     </sidebar-content>
 </sidebar>
 
@@ -165,11 +202,17 @@ import { DebugMarkerIcon } from '../MapRendering/MapIcons';
 
             padding: 0.5em;
             
+            color:white;
+
             resize: vertical;
             
             &::placeholder {
                 color: #bbb;
             }
+        }
+
+        p {
+            color:#666;
         }
 
         
@@ -199,6 +242,17 @@ import { DebugMarkerIcon } from '../MapRendering/MapIcons';
 
         button.fill {
             width: calc(100%);
+        }
+    }
+
+    marker-item {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        color: white;
+        button {
+            background-color: red;
         }
     }
     split {

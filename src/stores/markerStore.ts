@@ -16,7 +16,8 @@ export const addGameMarker = (x: number,y: number, name: string, content: string
         markers.push({
             id: markers.length,
             type: 'game',
-            x, y,
+            x:x, 
+            y:y,
             label: name,
 
             content,
@@ -30,7 +31,8 @@ export const addMarker = (lat: number, lon: number, name: string, content: strin
         markers.push({
             id: markers.length,
             type: 'normal',
-            x: lon, y: lat,
+            x: lon, 
+            y: lat,
             label: name,
 
             content,

@@ -106,6 +106,12 @@ var app = (function () {
     function detach(node) {
         node.parentNode.removeChild(node);
     }
+    function destroy_each(iterations, detaching) {
+        for (let i = 0; i < iterations.length; i += 1) {
+            if (iterations[i])
+                iterations[i].d(detaching);
+        }
+    }
     function element(name) {
         return document.createElement(name);
     }
@@ -117,6 +123,9 @@ var app = (function () {
     }
     function space() {
         return text(' ');
+    }
+    function empty() {
+        return text('');
     }
     function listen(node, event, handler, options) {
         node.addEventListener(event, handler, options);
@@ -241,6 +250,19 @@ var app = (function () {
     }
     const outroing = new Set();
     let outros;
+    function group_outros() {
+        outros = {
+            r: 0,
+            c: [],
+            p: outros // parent group
+        };
+    }
+    function check_outros() {
+        if (!outros.r) {
+            run_all(outros.c);
+        }
+        outros = outros.p;
+    }
     function transition_in(block, local) {
         if (block && block.i) {
             outroing.delete(block);
@@ -427,6 +449,22 @@ var app = (function () {
         else
             dispatch_dev('SvelteDOMSetAttribute', { node, attribute, value });
     }
+    function set_data_dev(text, data) {
+        data = '' + data;
+        if (text.wholeText === data)
+            return;
+        dispatch_dev('SvelteDOMSetData', { node: text, data });
+        text.data = data;
+    }
+    function validate_each_argument(arg) {
+        if (typeof arg !== 'string' && !(arg && typeof arg === 'object' && 'length' in arg)) {
+            let msg = '{#each} only iterates over array-like objects.';
+            if (typeof Symbol === 'function' && arg && Symbol.iterator in arg) {
+                msg += ' You can use a spread to convert this iterable into an array.';
+            }
+            throw new Error(msg);
+        }
+    }
     function validate_slots(name, slot, keys) {
         for (const slot_key of Object.keys(slot)) {
             if (!~keys.indexOf(slot_key)) {
@@ -453,6 +491,81 @@ var app = (function () {
         $capture_state() { }
         $inject_state() { }
     }
+
+    const subscriber_queue = [];
+    /**
+     * Create a `Writable` store that allows both updating and reading by subscription.
+     * @param {*=}value initial value
+     * @param {StartStopNotifier=}start start and stop notifications for subscriptions
+     */
+    function writable(value, start = noop) {
+        let stop;
+        const subscribers = new Set();
+        function set(new_value) {
+            if (safe_not_equal(value, new_value)) {
+                value = new_value;
+                if (stop) { // store is ready
+                    const run_queue = !subscriber_queue.length;
+                    for (const subscriber of subscribers) {
+                        subscriber[1]();
+                        subscriber_queue.push(subscriber, value);
+                    }
+                    if (run_queue) {
+                        for (let i = 0; i < subscriber_queue.length; i += 2) {
+                            subscriber_queue[i][0](subscriber_queue[i + 1]);
+                        }
+                        subscriber_queue.length = 0;
+                    }
+                }
+            }
+        }
+        function update(fn) {
+            set(fn(value));
+        }
+        function subscribe(run, invalidate = noop) {
+            const subscriber = [run, invalidate];
+            subscribers.add(subscriber);
+            if (subscribers.size === 1) {
+                stop = start(set) || noop;
+            }
+            run(value);
+            return () => {
+                subscribers.delete(subscriber);
+                if (subscribers.size === 0) {
+                    stop();
+                    stop = null;
+                }
+            };
+        }
+        return { set, update, subscribe };
+    }
+
+    const markers = writable([]);
+    const addGameMarker = (x, y, name, content = null) => {
+        markers.update(markers => {
+            markers.push({
+                id: markers.length,
+                type: 'game',
+                x: x,
+                y: y,
+                label: name,
+                content,
+            });
+            return markers;
+        });
+    };
+    const removeMarker = (id) => {
+        markers.update(markers => {
+            const index = markers.findIndex(m => m.id === id);
+            if (index > -1) {
+                markers.splice(index, 1);
+            }
+            return markers;
+        });
+    };
+    // debug marker
+    const debugMarker = writable([0, 0]);
+    const setDebugMarker = (x, y) => debugMarker.update(v => [x, y]);
 
     var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -14537,7 +14650,7 @@ var app = (function () {
     /* src\MapRendering\Map.svelte generated by Svelte v3.43.0 */
     const file$1 = "src\\MapRendering\\Map.svelte";
 
-    function create_fragment$3(ctx) {
+    function create_fragment$4(ctx) {
     	let div;
     	let t;
     	let link;
@@ -14622,7 +14735,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$3.name,
+    		id: create_fragment$4.name,
     		type: "component",
     		source: "",
     		ctx
@@ -14631,7 +14744,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$3($$self, $$props, $$invalidate) {
+    function instance$4($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Map', slots, ['default']);
     	let map;
@@ -14699,13 +14812,13 @@ var app = (function () {
     class Map$1 extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$3, create_fragment$3, safe_not_equal, {});
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Map",
     			options,
-    			id: create_fragment$3.name
+    			id: create_fragment$4.name
     		});
     	}
     }
@@ -14719,7 +14832,7 @@ var app = (function () {
      * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
      */
 
-    createCommonjsModule(function (module, exports) {
+    var lodash = createCommonjsModule(function (module, exports) {
     (function() {
 
       /** Used as a safe reference for `undefined` in pre-ES5 environments. */
@@ -31909,64 +32022,189 @@ var app = (function () {
     }.call(commonjsGlobal));
     });
 
-    const DebugMarkerIcon = leafletSrc.icon({ iconUrl: 'assets/debugMarker.png', iconAnchor: [71 / 2.5 / 2, 90 / 2.5], iconSize: [71 / 2.5, 90 / 2.5] });
+    /* src\MapRendering\Markers\GameMarker.svelte generated by Svelte v3.43.0 */
 
-    const subscriber_queue = [];
-    /**
-     * Create a `Writable` store that allows both updating and reading by subscription.
-     * @param {*=}value initial value
-     * @param {StartStopNotifier=}start start and stop notifications for subscriptions
-     */
-    function writable(value, start = noop) {
-        let stop;
-        const subscribers = new Set();
-        function set(new_value) {
-            if (safe_not_equal(value, new_value)) {
-                value = new_value;
-                if (stop) { // store is ready
-                    const run_queue = !subscriber_queue.length;
-                    for (const subscriber of subscribers) {
-                        subscriber[1]();
-                        subscriber_queue.push(subscriber, value);
-                    }
-                    if (run_queue) {
-                        for (let i = 0; i < subscriber_queue.length; i += 2) {
-                            subscriber_queue[i][0](subscriber_queue[i + 1]);
-                        }
-                        subscriber_queue.length = 0;
-                    }
-                }
-            }
-        }
-        function update(fn) {
-            set(fn(value));
-        }
-        function subscribe(run, invalidate = noop) {
-            const subscriber = [run, invalidate];
-            subscribers.add(subscriber);
-            if (subscribers.size === 1) {
-                stop = start(set) || noop;
-            }
-            run(value);
-            return () => {
-                subscribers.delete(subscriber);
-                if (subscribers.size === 0) {
-                    stop();
-                    stop = null;
-                }
-            };
-        }
-        return { set, update, subscribe };
+    function create_fragment$3(ctx) {
+    	const block = {
+    		c: noop,
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: noop,
+    		p: noop,
+    		i: noop,
+    		o: noop,
+    		d: noop
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$3.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
     }
 
-    // debug marker
-    const debugMarker = writable([0, 0]);
-    const setDebugMarker = (x, y) => debugMarker.update(v => [x, y]);
+    function instance$3($$self, $$props, $$invalidate) {
+    	let { $$slots: slots = {}, $$scope } = $$props;
+    	validate_slots('GameMarker', slots, []);
+    	let { text = "" } = $$props;
+    	let { position } = $$props;
+    	let { draggable = false } = $$props;
+    	let { icon = null } = $$props;
+    	const context = getContext('gtavmap');
+    	let marker;
+
+    	onMount(() => {
+    		const map = context.getMap();
+
+    		let defaultIcon = new leafletSrc.Icon.Default({
+    				imagePath: 'https://unpkg.com/leaflet@1.7.1/dist/images/'
+    			});
+
+    		let gamePos = gameToMap(...position);
+
+    		$$invalidate(4, marker = leafletSrc.marker(leafletSrc.latLng(...gamePos), {
+    			draggable,
+    			icon: icon ? icon : defaultIcon
+    		}));
+
+    		if (!lodash.isEmpty(text)) {
+    			marker.bindPopup(text);
+    		}
+
+    		marker.addTo(map);
+    	});
+
+    	onDestroy(() => {
+    		marker.remove();
+    	});
+
+    	const writable_props = ['text', 'position', 'draggable', 'icon'];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<GameMarker> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$$set = $$props => {
+    		if ('text' in $$props) $$invalidate(0, text = $$props.text);
+    		if ('position' in $$props) $$invalidate(1, position = $$props.position);
+    		if ('draggable' in $$props) $$invalidate(2, draggable = $$props.draggable);
+    		if ('icon' in $$props) $$invalidate(3, icon = $$props.icon);
+    	};
+
+    	$$self.$capture_state = () => ({
+    		getContext,
+    		onMount,
+    		onDestroy,
+    		L: leafletSrc,
+    		gameToMap,
+    		_: lodash,
+    		text,
+    		position,
+    		draggable,
+    		icon,
+    		context,
+    		marker
+    	});
+
+    	$$self.$inject_state = $$props => {
+    		if ('text' in $$props) $$invalidate(0, text = $$props.text);
+    		if ('position' in $$props) $$invalidate(1, position = $$props.position);
+    		if ('draggable' in $$props) $$invalidate(2, draggable = $$props.draggable);
+    		if ('icon' in $$props) $$invalidate(3, icon = $$props.icon);
+    		if ('marker' in $$props) $$invalidate(4, marker = $$props.marker);
+    	};
+
+    	if ($$props && "$$inject" in $$props) {
+    		$$self.$inject_state($$props.$$inject);
+    	}
+
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*marker, position*/ 18) {
+    			{
+    				marker === null || marker === void 0
+    				? void 0
+    				: marker.setLatLng(leafletSrc.latLng(...gameToMap(...position)));
+    			}
+    		}
+    	};
+
+    	return [text, position, draggable, icon, marker];
+    }
+
+    class GameMarker extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, {
+    			text: 0,
+    			position: 1,
+    			draggable: 2,
+    			icon: 3
+    		});
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "GameMarker",
+    			options,
+    			id: create_fragment$3.name
+    		});
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+
+    		if (/*position*/ ctx[1] === undefined && !('position' in props)) {
+    			console.warn("<GameMarker> was created without expected prop 'position'");
+    		}
+    	}
+
+    	get text() {
+    		throw new Error("<GameMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set text(value) {
+    		throw new Error("<GameMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get position() {
+    		throw new Error("<GameMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set position(value) {
+    		throw new Error("<GameMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get draggable() {
+    		throw new Error("<GameMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set draggable(value) {
+    		throw new Error("<GameMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get icon() {
+    		throw new Error("<GameMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set icon(value) {
+    		throw new Error("<GameMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
 
     /* src\Controls\Sidebar.svelte generated by Svelte v3.43.0 */
     const file = "src\\Controls\\Sidebar.svelte";
 
-    // (34:8) {:else}
+    function get_each_context$1(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[24] = list[i];
+    	return child_ctx;
+    }
+
+    // (56:8) {:else}
     function create_else_block(ctx) {
     	let svg;
     	let path;
@@ -31979,13 +32217,13 @@ var app = (function () {
     			attr_dev(path, "stroke-linejoin", "round");
     			attr_dev(path, "stroke-width", "2");
     			attr_dev(path, "d", "M15 19l-7-7 7-7");
-    			add_location(path, file, 35, 16, 1445);
+    			add_location(path, file, 57, 16, 2317);
     			attr_dev(svg, "xmlns", "http://www.w3.org/2000/svg");
     			attr_dev(svg, "class", "h-6 w-6");
     			attr_dev(svg, "fill", "none");
     			attr_dev(svg, "viewBox", "0 0 24 24");
     			attr_dev(svg, "stroke", "currentColor");
-    			add_location(svg, file, 34, 12, 1317);
+    			add_location(svg, file, 56, 12, 2189);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, svg, anchor);
@@ -32000,15 +32238,15 @@ var app = (function () {
     		block,
     		id: create_else_block.name,
     		type: "else",
-    		source: "(34:8) {:else}",
+    		source: "(56:8) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (30:8) {#if sidebarOpen}
-    function create_if_block(ctx) {
+    // (52:8) {#if sidebarOpen}
+    function create_if_block$1(ctx) {
     	let svg;
     	let path;
 
@@ -32020,13 +32258,13 @@ var app = (function () {
     			attr_dev(path, "stroke-linejoin", "round");
     			attr_dev(path, "stroke-width", "2");
     			attr_dev(path, "d", "M9 5l7 7-7 7");
-    			add_location(path, file, 31, 16, 1177);
+    			add_location(path, file, 53, 16, 2049);
     			attr_dev(svg, "xmlns", "http://www.w3.org/2000/svg");
     			attr_dev(svg, "class", "h-6 w-6");
     			attr_dev(svg, "fill", "none");
     			attr_dev(svg, "viewBox", "0 0 24 24");
     			attr_dev(svg, "stroke", "currentColor");
-    			add_location(svg, file, 30, 12, 1049);
+    			add_location(svg, file, 52, 12, 1921);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, svg, anchor);
@@ -32039,9 +32277,75 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block.name,
+    		id: create_if_block$1.name,
     		type: "if",
-    		source: "(30:8) {#if sidebarOpen}",
+    		source: "(52:8) {#if sidebarOpen}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (93:8) {#each $markers as marker}
+    function create_each_block$1(ctx) {
+    	let marker_item;
+    	let marker_name;
+    	let t0_value = /*marker*/ ctx[24].label + "";
+    	let t0;
+    	let t1;
+    	let button;
+    	let t3;
+    	let mounted;
+    	let dispose;
+
+    	function click_handler_1() {
+    		return /*click_handler_1*/ ctx[23](/*marker*/ ctx[24]);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			marker_item = element("marker-item");
+    			marker_name = element("marker-name");
+    			t0 = text(t0_value);
+    			t1 = space();
+    			button = element("button");
+    			button.textContent = "Delete";
+    			t3 = space();
+    			add_location(marker_name, file, 94, 16, 3850);
+    			attr_dev(button, "class", "svelte-1l11faf");
+    			add_location(button, file, 95, 16, 3909);
+    			set_custom_element_data(marker_item, "class", "svelte-1l11faf");
+    			add_location(marker_item, file, 93, 12, 3819);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, marker_item, anchor);
+    			append_dev(marker_item, marker_name);
+    			append_dev(marker_name, t0);
+    			append_dev(marker_item, t1);
+    			append_dev(marker_item, button);
+    			append_dev(marker_item, t3);
+
+    			if (!mounted) {
+    				dispose = listen_dev(button, "click", click_handler_1, false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: function update(new_ctx, dirty) {
+    			ctx = new_ctx;
+    			if (dirty & /*$markers*/ 512 && t0_value !== (t0_value = /*marker*/ ctx[24].label + "")) set_data_dev(t0, t0_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(marker_item);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block$1.name,
+    		type: "each",
+    		source: "(93:8) {#each $markers as marker}",
     		ctx
     	});
 
@@ -32075,23 +32379,36 @@ var app = (function () {
     	let t13;
     	let seperator2;
     	let t15;
-    	let textarea;
+    	let p;
     	let t16;
-    	let button1;
+    	let br;
+    	let t17;
     	let t18;
+    	let textarea;
+    	let t19;
+    	let button1;
+    	let t21;
     	let seperator3;
-    	let t20;
+    	let t23;
     	let button2;
+    	let t25;
     	let mounted;
     	let dispose;
 
     	function select_block_type(ctx, dirty) {
-    		if (/*sidebarOpen*/ ctx[4]) return create_if_block;
+    		if (/*sidebarOpen*/ ctx[4]) return create_if_block$1;
     		return create_else_block;
     	}
 
     	let current_block_type = select_block_type(ctx);
     	let if_block = current_block_type(ctx);
+    	let each_value = /*$markers*/ ctx[9];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+    	}
 
     	const block = {
     		c: function create() {
@@ -32127,68 +32444,82 @@ var app = (function () {
     			seperator2 = element("seperator");
     			seperator2.textContent = "Multiple";
     			t15 = space();
+    			p = element("p");
+    			t16 = text("Syntax: (* means required)");
+    			br = element("br");
+    			t17 = text("\r\n            x-coord*, y-coord*, name*, content");
+    			t18 = space();
     			textarea = element("textarea");
-    			t16 = space();
+    			t19 = space();
     			button1 = element("button");
     			button1.textContent = "Create Marker(s)";
-    			t18 = space();
+    			t21 = space();
     			seperator3 = element("seperator");
     			seperator3.textContent = "Active Markers";
-    			t20 = space();
+    			t23 = space();
     			button2 = element("button");
     			button2.textContent = "Clear All";
-    			set_custom_element_data(sidebar_thumb, "class", "svelte-1xyhtvh");
-    			add_location(sidebar_thumb, file, 28, 4, 968);
-    			attr_dev(h1, "class", "svelte-1xyhtvh");
-    			add_location(h1, file, 41, 8, 1629);
-    			attr_dev(seperator0, "class", "svelte-1xyhtvh");
-    			add_location(seperator0, file, 43, 8, 1659);
+    			t25 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			set_custom_element_data(sidebar_thumb, "class", "svelte-1l11faf");
+    			add_location(sidebar_thumb, file, 50, 4, 1840);
+    			attr_dev(h1, "class", "svelte-1l11faf");
+    			add_location(h1, file, 63, 8, 2501);
+    			attr_dev(seperator0, "class", "svelte-1l11faf");
+    			add_location(seperator0, file, 65, 8, 2531);
     			attr_dev(input0, "type", "number");
     			attr_dev(input0, "placeholder", "x-position");
-    			attr_dev(input0, "class", "svelte-1xyhtvh");
-    			add_location(input0, file, 45, 12, 1725);
+    			attr_dev(input0, "class", "svelte-1l11faf");
+    			add_location(input0, file, 67, 12, 2597);
     			attr_dev(input1, "type", "number");
     			attr_dev(input1, "placeholder", "y-position");
-    			attr_dev(input1, "class", "svelte-1xyhtvh");
-    			add_location(input1, file, 46, 12, 1829);
-    			attr_dev(split0, "class", "svelte-1xyhtvh");
-    			add_location(split0, file, 44, 8, 1704);
-    			attr_dev(seperator1, "class", "svelte-1xyhtvh");
-    			add_location(seperator1, file, 50, 8, 1959);
-    			attr_dev(input2, "class", "fill svelte-1xyhtvh");
+    			attr_dev(input1, "class", "svelte-1l11faf");
+    			add_location(input1, file, 68, 12, 2701);
+    			attr_dev(split0, "class", "svelte-1l11faf");
+    			add_location(split0, file, 66, 8, 2576);
+    			attr_dev(seperator1, "class", "svelte-1l11faf");
+    			add_location(seperator1, file, 72, 8, 2831);
+    			attr_dev(input2, "class", "fill svelte-1l11faf");
     			attr_dev(input2, "type", "text");
     			attr_dev(input2, "placeholder", "Name");
-    			add_location(input2, file, 51, 8, 2002);
+    			add_location(input2, file, 73, 8, 2874);
     			attr_dev(input3, "type", "number");
     			attr_dev(input3, "placeholder", "x-position");
-    			attr_dev(input3, "class", "svelte-1xyhtvh");
-    			add_location(input3, file, 53, 12, 2084);
+    			attr_dev(input3, "class", "svelte-1l11faf");
+    			add_location(input3, file, 75, 12, 2983);
     			attr_dev(input4, "type", "number");
     			attr_dev(input4, "placeholder", "y-position");
-    			attr_dev(input4, "class", "svelte-1xyhtvh");
-    			add_location(input4, file, 54, 12, 2144);
-    			attr_dev(split1, "class", "svelte-1xyhtvh");
-    			add_location(split1, file, 52, 8, 2063);
-    			attr_dev(button0, "class", "fill svelte-1xyhtvh");
-    			add_location(button0, file, 56, 8, 2218);
-    			attr_dev(seperator2, "class", "svelte-1xyhtvh");
-    			add_location(seperator2, file, 59, 8, 2291);
-    			attr_dev(textarea, "class", "fill svelte-1xyhtvh");
+    			attr_dev(input4, "class", "svelte-1l11faf");
+    			add_location(input4, file, 76, 12, 3067);
+    			attr_dev(split1, "class", "svelte-1l11faf");
+    			add_location(split1, file, 74, 8, 2962);
+    			attr_dev(button0, "class", "fill svelte-1l11faf");
+    			add_location(button0, file, 78, 8, 3165);
+    			attr_dev(seperator2, "class", "svelte-1l11faf");
+    			add_location(seperator2, file, 81, 8, 3262);
+    			add_location(br, file, 83, 38, 3346);
+    			attr_dev(p, "class", "svelte-1l11faf");
+    			add_location(p, file, 82, 8, 3303);
+    			attr_dev(textarea, "class", "fill svelte-1l11faf");
     			attr_dev(textarea, "cols", "30");
     			attr_dev(textarea, "rows", "10");
     			attr_dev(textarea, "placeholder", "Enter coords here...");
-    			add_location(textarea, file, 60, 8, 2332);
-    			attr_dev(button1, "class", "fill svelte-1xyhtvh");
-    			add_location(button1, file, 61, 8, 2431);
-    			attr_dev(seperator3, "class", "svelte-1xyhtvh");
-    			add_location(seperator3, file, 64, 8, 2499);
-    			attr_dev(button2, "class", "fill svelte-1xyhtvh");
-    			add_location(button2, file, 65, 8, 2546);
-    			set_custom_element_data(sidebar_content, "class", "svelte-1xyhtvh");
-    			add_location(sidebar_content, file, 40, 4, 1602);
-    			attr_dev(sidebar, "class", "svelte-1xyhtvh");
+    			add_location(textarea, file, 86, 8, 3422);
+    			attr_dev(button1, "class", "fill svelte-1l11faf");
+    			add_location(button1, file, 87, 8, 3550);
+    			attr_dev(seperator3, "class", "svelte-1l11faf");
+    			add_location(seperator3, file, 90, 8, 3645);
+    			attr_dev(button2, "class", "fill svelte-1l11faf");
+    			add_location(button2, file, 91, 8, 3692);
+    			set_custom_element_data(sidebar_content, "class", "svelte-1l11faf");
+    			add_location(sidebar_content, file, 62, 4, 2474);
+    			attr_dev(sidebar, "class", "svelte-1l11faf");
     			toggle_class(sidebar, "open", /*sidebarOpen*/ ctx[4]);
-    			add_location(sidebar, file, 27, 0, 928);
+    			add_location(sidebar, file, 49, 0, 1800);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -32206,38 +32537,59 @@ var app = (function () {
     			append_dev(sidebar_content, split0);
     			append_dev(split0, input0);
     			set_input_value(input0, /*debugPosX*/ ctx[0]);
-    			/*input0_binding*/ ctx[8](input0);
+    			/*input0_binding*/ ctx[15](input0);
     			append_dev(split0, t5);
     			append_dev(split0, input1);
     			set_input_value(input1, /*debugPosY*/ ctx[1]);
-    			/*input1_binding*/ ctx[10](input1);
+    			/*input1_binding*/ ctx[17](input1);
     			append_dev(sidebar_content, t6);
     			append_dev(sidebar_content, seperator1);
     			append_dev(sidebar_content, t8);
     			append_dev(sidebar_content, input2);
+    			set_input_value(input2, /*newMarkerName*/ ctx[5]);
     			append_dev(sidebar_content, t9);
     			append_dev(sidebar_content, split1);
     			append_dev(split1, input3);
+    			set_input_value(input3, /*newMarkerX*/ ctx[6]);
     			append_dev(split1, t10);
     			append_dev(split1, input4);
+    			set_input_value(input4, /*newMarkerY*/ ctx[7]);
     			append_dev(sidebar_content, t11);
     			append_dev(sidebar_content, button0);
     			append_dev(sidebar_content, t13);
     			append_dev(sidebar_content, seperator2);
     			append_dev(sidebar_content, t15);
-    			append_dev(sidebar_content, textarea);
-    			append_dev(sidebar_content, t16);
-    			append_dev(sidebar_content, button1);
+    			append_dev(sidebar_content, p);
+    			append_dev(p, t16);
+    			append_dev(p, br);
+    			append_dev(p, t17);
     			append_dev(sidebar_content, t18);
+    			append_dev(sidebar_content, textarea);
+    			set_input_value(textarea, /*multipleContent*/ ctx[8]);
+    			append_dev(sidebar_content, t19);
+    			append_dev(sidebar_content, button1);
+    			append_dev(sidebar_content, t21);
     			append_dev(sidebar_content, seperator3);
-    			append_dev(sidebar_content, t20);
+    			append_dev(sidebar_content, t23);
     			append_dev(sidebar_content, button2);
+    			append_dev(sidebar_content, t25);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(sidebar_content, null);
+    			}
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(sidebar_thumb, "click", /*toggleSidebar*/ ctx[5], false, false, false),
-    					listen_dev(input0, "input", /*input0_input_handler*/ ctx[7]),
-    					listen_dev(input1, "input", /*input1_input_handler*/ ctx[9])
+    					listen_dev(sidebar_thumb, "click", /*toggleSidebar*/ ctx[10], false, false, false),
+    					listen_dev(input0, "input", /*input0_input_handler*/ ctx[14]),
+    					listen_dev(input1, "input", /*input1_input_handler*/ ctx[16]),
+    					listen_dev(input2, "input", /*input2_input_handler*/ ctx[18]),
+    					listen_dev(input3, "input", /*input3_input_handler*/ ctx[19]),
+    					listen_dev(input4, "input", /*input4_input_handler*/ ctx[20]),
+    					listen_dev(button0, "click", /*addNewMarker*/ ctx[11], false, false, false),
+    					listen_dev(textarea, "input", /*textarea_input_handler*/ ctx[21]),
+    					listen_dev(button1, "click", /*processMultiple*/ ctx[12], false, false, false),
+    					listen_dev(button2, "click", /*click_handler*/ ctx[22], false, false, false)
     				];
 
     				mounted = true;
@@ -32262,6 +32614,46 @@ var app = (function () {
     				set_input_value(input1, /*debugPosY*/ ctx[1]);
     			}
 
+    			if (dirty & /*newMarkerName*/ 32 && input2.value !== /*newMarkerName*/ ctx[5]) {
+    				set_input_value(input2, /*newMarkerName*/ ctx[5]);
+    			}
+
+    			if (dirty & /*newMarkerX*/ 64 && to_number(input3.value) !== /*newMarkerX*/ ctx[6]) {
+    				set_input_value(input3, /*newMarkerX*/ ctx[6]);
+    			}
+
+    			if (dirty & /*newMarkerY*/ 128 && to_number(input4.value) !== /*newMarkerY*/ ctx[7]) {
+    				set_input_value(input4, /*newMarkerY*/ ctx[7]);
+    			}
+
+    			if (dirty & /*multipleContent*/ 256) {
+    				set_input_value(textarea, /*multipleContent*/ ctx[8]);
+    			}
+
+    			if (dirty & /*removeMarker, $markers*/ 512) {
+    				each_value = /*$markers*/ ctx[9];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    					} else {
+    						each_blocks[i] = create_each_block$1(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(sidebar_content, null);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+
+    				each_blocks.length = each_value.length;
+    			}
+
     			if (dirty & /*sidebarOpen*/ 16) {
     				toggle_class(sidebar, "open", /*sidebarOpen*/ ctx[4]);
     			}
@@ -32271,8 +32663,9 @@ var app = (function () {
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(sidebar);
     			if_block.d();
-    			/*input0_binding*/ ctx[8](null);
-    			/*input1_binding*/ ctx[10](null);
+    			/*input0_binding*/ ctx[15](null);
+    			/*input1_binding*/ ctx[17](null);
+    			destroy_each(each_blocks, detaching);
     			mounted = false;
     			run_all(dispose);
     		}
@@ -32299,8 +32692,11 @@ var app = (function () {
 
     function instance$2($$self, $$props, $$invalidate) {
     	let $debugMarker;
+    	let $markers;
     	validate_store(debugMarker, 'debugMarker');
-    	component_subscribe($$self, debugMarker, $$value => $$invalidate(6, $debugMarker = $$value));
+    	component_subscribe($$self, debugMarker, $$value => $$invalidate(13, $debugMarker = $$value));
+    	validate_store(markers, 'markers');
+    	component_subscribe($$self, markers, $$value => $$invalidate(9, $markers = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('Sidebar', slots, []);
     	let sidebarOpen = true;
@@ -32313,6 +32709,31 @@ var app = (function () {
     	let debugPosY = $debugMarker[1];
     	let xPosElem = null;
     	let yPosElem = null;
+    	let newMarkerName = null;
+    	let newMarkerX = null;
+    	let newMarkerY = null;
+
+    	function addNewMarker() {
+    		if (newMarkerName === null || newMarkerX === null || newMarkerY === null || lodash.isEmpty(newMarkerName)) return;
+    		addGameMarker(newMarkerX, newMarkerY, newMarkerName);
+    		$$invalidate(5, newMarkerName = null);
+    		$$invalidate(6, newMarkerX = null);
+    		$$invalidate(7, newMarkerY = null);
+    	}
+
+    	let multipleContent = null;
+
+    	function processMultiple() {
+    		multipleContent.split('\n').forEach(line => {
+    			var _a, _b;
+    			let [x, y, name, content] = line.replace(/\s+/g, '').split(',');
+    			if (lodash.isEmpty(name) || lodash.isEmpty(x) || lodash.isEmpty(y)) return;
+    			addGameMarker((_a = parseFloat(x)) !== null && _a !== void 0 ? _a : 0, (_b = parseFloat(y)) !== null && _b !== void 0 ? _b : 0, name, content);
+    		});
+
+    		$$invalidate(8, multipleContent = null);
+    	}
+
     	const writable_props = [];
 
     	Object.keys($$props).forEach(key => {
@@ -32321,7 +32742,7 @@ var app = (function () {
 
     	function input0_input_handler() {
     		debugPosX = to_number(this.value);
-    		(((($$invalidate(0, debugPosX), $$invalidate(6, $debugMarker)), $$invalidate(2, xPosElem)), $$invalidate(3, yPosElem)), $$invalidate(1, debugPosY));
+    		(((($$invalidate(0, debugPosX), $$invalidate(13, $debugMarker)), $$invalidate(2, xPosElem)), $$invalidate(3, yPosElem)), $$invalidate(1, debugPosY));
     	}
 
     	function input0_binding($$value) {
@@ -32333,7 +32754,7 @@ var app = (function () {
 
     	function input1_input_handler() {
     		debugPosY = to_number(this.value);
-    		(((($$invalidate(1, debugPosY), $$invalidate(0, debugPosX)), $$invalidate(6, $debugMarker)), $$invalidate(2, xPosElem)), $$invalidate(3, yPosElem));
+    		(((($$invalidate(1, debugPosY), $$invalidate(0, debugPosX)), $$invalidate(13, $debugMarker)), $$invalidate(2, xPosElem)), $$invalidate(3, yPosElem));
     	}
 
     	function input1_binding($$value) {
@@ -32343,9 +32764,36 @@ var app = (function () {
     		});
     	}
 
+    	function input2_input_handler() {
+    		newMarkerName = this.value;
+    		$$invalidate(5, newMarkerName);
+    	}
+
+    	function input3_input_handler() {
+    		newMarkerX = to_number(this.value);
+    		$$invalidate(6, newMarkerX);
+    	}
+
+    	function input4_input_handler() {
+    		newMarkerY = to_number(this.value);
+    		$$invalidate(7, newMarkerY);
+    	}
+
+    	function textarea_input_handler() {
+    		multipleContent = this.value;
+    		$$invalidate(8, multipleContent);
+    	}
+
+    	const click_handler = () => markers.update(() => []);
+    	const click_handler_1 = marker => removeMarker(marker.id);
+
     	$$self.$capture_state = () => ({
+    		addGameMarker,
     		debugMarker,
     		setDebugMarker,
+    		removeMarker,
+    		markers,
+    		_: lodash,
     		sidebarOpen,
     		toggleSidebar,
     		hasElementFocus,
@@ -32353,7 +32801,14 @@ var app = (function () {
     		debugPosY,
     		xPosElem,
     		yPosElem,
-    		$debugMarker
+    		newMarkerName,
+    		newMarkerX,
+    		newMarkerY,
+    		addNewMarker,
+    		multipleContent,
+    		processMultiple,
+    		$debugMarker,
+    		$markers
     	});
 
     	$$self.$inject_state = $$props => {
@@ -32362,6 +32817,10 @@ var app = (function () {
     		if ('debugPosY' in $$props) $$invalidate(1, debugPosY = $$props.debugPosY);
     		if ('xPosElem' in $$props) $$invalidate(2, xPosElem = $$props.xPosElem);
     		if ('yPosElem' in $$props) $$invalidate(3, yPosElem = $$props.yPosElem);
+    		if ('newMarkerName' in $$props) $$invalidate(5, newMarkerName = $$props.newMarkerName);
+    		if ('newMarkerX' in $$props) $$invalidate(6, newMarkerX = $$props.newMarkerX);
+    		if ('newMarkerY' in $$props) $$invalidate(7, newMarkerY = $$props.newMarkerY);
+    		if ('multipleContent' in $$props) $$invalidate(8, multipleContent = $$props.multipleContent);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -32369,7 +32828,7 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*debugPosX, $debugMarker, xPosElem, yPosElem, debugPosY*/ 79) {
+    		if ($$self.$$.dirty & /*debugPosX, $debugMarker, xPosElem, yPosElem, debugPosY*/ 8207) {
     			{
     				if (debugPosX !== $debugMarker[0] && !hasElementFocus([xPosElem, yPosElem])) $$invalidate(0, debugPosX = Math.round($debugMarker[0] * 100000) / 100000);
     				if (debugPosY !== $debugMarker[1] && !hasElementFocus([xPosElem, yPosElem])) $$invalidate(1, debugPosY = Math.round($debugMarker[1] * 100000) / 100000);
@@ -32388,12 +32847,25 @@ var app = (function () {
     		xPosElem,
     		yPosElem,
     		sidebarOpen,
+    		newMarkerName,
+    		newMarkerX,
+    		newMarkerY,
+    		multipleContent,
+    		$markers,
     		toggleSidebar,
+    		addNewMarker,
+    		processMultiple,
     		$debugMarker,
     		input0_input_handler,
     		input0_binding,
     		input1_input_handler,
-    		input1_binding
+    		input1_binding,
+    		input2_input_handler,
+    		input3_input_handler,
+    		input4_input_handler,
+    		textarea_input_handler,
+    		click_handler,
+    		click_handler_1
     	];
     }
 
@@ -32410,6 +32882,8 @@ var app = (function () {
     		});
     	}
     }
+
+    const DebugMarkerIcon = leafletSrc.icon({ iconUrl: 'assets/debugMarker.png', iconAnchor: [71 / 2.5 / 2, 90 / 2.5], iconSize: [71 / 2.5, 90 / 2.5] });
 
     /* src\MapRendering\Markers\DebugMarker.svelte generated by Svelte v3.43.0 */
 
@@ -32524,30 +32998,218 @@ var app = (function () {
 
     /* src\App.svelte generated by Svelte v3.43.0 */
 
-    // (7:0) <Map>
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[1] = list[i];
+    	return child_ctx;
+    }
+
+    // (10:8) {#if marker.type === 'game'}
+    function create_if_block(ctx) {
+    	let gamemarker;
+    	let current;
+
+    	gamemarker = new GameMarker({
+    			props: {
+    				position: [/*marker*/ ctx[1].x, /*marker*/ ctx[1].y],
+    				draggable: true
+    			},
+    			$$inline: true
+    		});
+
+    	const block = {
+    		c: function create() {
+    			create_component(gamemarker.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(gamemarker, target, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			const gamemarker_changes = {};
+    			if (dirty & /*$markers*/ 1) gamemarker_changes.position = [/*marker*/ ctx[1].x, /*marker*/ ctx[1].y];
+    			gamemarker.$set(gamemarker_changes);
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(gamemarker.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(gamemarker.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(gamemarker, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(10:8) {#if marker.type === 'game'}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (9:4) {#each $markers as marker}
+    function create_each_block(ctx) {
+    	let if_block_anchor;
+    	let current;
+    	let if_block = /*marker*/ ctx[1].type === 'game' && create_if_block(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			if (/*marker*/ ctx[1].type === 'game') {
+    				if (if_block) {
+    					if_block.p(ctx, dirty);
+
+    					if (dirty & /*$markers*/ 1) {
+    						transition_in(if_block, 1);
+    					}
+    				} else {
+    					if_block = create_if_block(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+
+    				check_outros();
+    			}
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+    			if (detaching) detach_dev(if_block_anchor);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block.name,
+    		type: "each",
+    		source: "(9:4) {#each $markers as marker}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (8:0) <Map>
     function create_default_slot(ctx) {
+    	let t;
     	let debugmarker;
     	let current;
+    	let each_value = /*$markers*/ ctx[0];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
     	debugmarker = new DebugMarker({ $$inline: true });
 
     	const block = {
     		c: function create() {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			t = space();
     			create_component(debugmarker.$$.fragment);
     		},
     		m: function mount(target, anchor) {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert_dev(target, t, anchor);
     			mount_component(debugmarker, target, anchor);
     			current = true;
     		},
+    		p: function update(ctx, dirty) {
+    			if (dirty & /*$markers*/ 1) {
+    				each_value = /*$markers*/ ctx[0];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(t.parentNode, t);
+    					}
+    				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
+    			}
+    		},
     		i: function intro(local) {
     			if (current) return;
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
     			transition_in(debugmarker.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
     			transition_out(debugmarker.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
+    			destroy_each(each_blocks, detaching);
+    			if (detaching) detach_dev(t);
     			destroy_component(debugmarker, detaching);
     		}
     	};
@@ -32556,7 +33218,7 @@ var app = (function () {
     		block,
     		id: create_default_slot.name,
     		type: "slot",
-    		source: "(7:0) <Map>",
+    		source: "(8:0) <Map>",
     		ctx
     	});
 
@@ -32597,7 +33259,7 @@ var app = (function () {
     		p: function update(ctx, [dirty]) {
     			const map_changes = {};
 
-    			if (dirty & /*$$scope*/ 1) {
+    			if (dirty & /*$$scope, $markers*/ 17) {
     				map_changes.$$scope = { dirty, ctx };
     			}
 
@@ -32633,6 +33295,9 @@ var app = (function () {
     }
 
     function instance($$self, $$props, $$invalidate) {
+    	let $markers;
+    	validate_store(markers, 'markers');
+    	component_subscribe($$self, markers, $$value => $$invalidate(0, $markers = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
     	const writable_props = [];
@@ -32641,8 +33306,16 @@ var app = (function () {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== '$$' && key !== 'slot') console.warn(`<App> was created with unknown prop '${key}'`);
     	});
 
-    	$$self.$capture_state = () => ({ Map: Map$1, Sidebar, DebugMarker });
-    	return [];
+    	$$self.$capture_state = () => ({
+    		markers,
+    		Map: Map$1,
+    		GameMarker,
+    		Sidebar,
+    		DebugMarker,
+    		$markers
+    	});
+
+    	return [$markers];
     }
 
     class App extends SvelteComponentDev {
