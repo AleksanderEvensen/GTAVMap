@@ -10,9 +10,9 @@ interface IMarker {
     content?: string;
 }
 
-const storage = JSON.parse(localStorage.markers);
+const storage = JSON.parse(localStorage.markers ?? '[]');
 
-export const markers = writable<IMarker[]>(storage || []);
+export const markers = writable<IMarker[]>(storage ?? []);
 
 markers.subscribe(markers => localStorage.setItem('markers', JSON.stringify(markers)));
 
