@@ -10,7 +10,12 @@ interface IMarker {
     content?: string;
 }
 
-export const markers = writable<IMarker[]>([]);
+const storage = JSON.parse(localStorage.markers);
+
+export const markers = writable<IMarker[]>(storage || []);
+
+markers.subscribe(markers => localStorage.setItem('markers', JSON.stringify(markers)));
+
 export const addGameMarker = (x: number,y: number, name: string, content: string = null) => {
     markers.update(markers => {
         markers.push({

@@ -2,15 +2,12 @@
     import { setContext } from "svelte";
     import L from 'leaflet';
     import { mapCenter } from '../utils';
-    let map;
 
-    setContext('gtavmap', {
-        getMap: () => map,
-    });
+    import { MainMap } from '../stores/main';
     
     //#region Map
     function initMap(container: HTMLDivElement) {
-        map = L.map(container, {
+        $MainMap = L.map(container, {
             center: mapCenter,
             // preferCanvas: true,
             crs: L.CRS.Simple  
@@ -21,20 +18,18 @@
             maxZoom: 7,
             minZoom: 3,
             bounds: L.latLngBounds(L.latLng(0.0,128.0), L.latLng(-192.0,0.0)),
-        }).addTo(map);
-
-        
+        }).addTo($MainMap);
 
         return {
             destroy: () => {
-                map.remove();
-                map = null;
+                $MainMap.remove();
+                $MainMap = null;
             }
         };
     }
 
     function resizeMap() {
-        if(map) { map.invalidateSize(); }
+        if($MainMap) { $MainMap.invalidateSize(); }
     }
 
     //#endregion

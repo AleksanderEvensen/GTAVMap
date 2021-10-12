@@ -3,22 +3,22 @@
     import L from 'leaflet';
     import { gameToMap } from '../../utils';
     import _ from 'lodash';
+    import { MainMap } from '../../stores/main';
 
     type Position = [number, number];
 
     export let text:string = "";
+    export let content: string = "";
     export let position:Position;
     export let draggable:boolean = false;
     export let icon:L.Icon = null;
 
-    const context:any = getContext('gtavmap');
     let marker: L.Marker;
 
     $: {
         marker?.setLatLng(L.latLng(...gameToMap(...position)));
     }
     onMount(() => {
-        const map: L.Map = context.getMap();
         let defaultIcon = new L.Icon.Default({
             imagePath: 'https://unpkg.com/leaflet@1.7.1/dist/images/'
         });
@@ -31,9 +31,9 @@
             
         });
         if(!_.isEmpty(text)) {
-            marker.bindPopup(text);
+            marker.bindPopup(`<h2>${text}</h2>${!_.isEmpty(content) ? `<h3>${content}</h3>`:''}`);
         }
-        marker.addTo(map);
+        marker.addTo($MainMap);
     });
     onDestroy(()=> {
         marker.remove();

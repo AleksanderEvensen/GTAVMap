@@ -1,20 +1,21 @@
 <script lang="ts">
-    import { markers, addGameMarker } from './stores/markerStore';
+    import { markers } from './stores/markerStore';
+    import { MainMap } from './stores/main';
 
     import Map from './MapRendering/Map.svelte';
     import GameMarker from './MapRendering/Markers/GameMarker.svelte';
     import Sidebar from './Controls/Sidebar.svelte';
     import DebugMarker from './MapRendering/Markers/DebugMarker.svelte';
-
+import { text } from 'svelte/internal';
 
 
 
 </script>
 
 <Map>
-    {#each $markers as marker}
-        {#if marker.type === 'game'}
-            <GameMarker position={[marker.x, marker.y]} draggable={true}  />
+    {#each $markers as {type, x, y, label: text, content}}
+        {#if type === 'game'}
+            <GameMarker position={[x, y]} draggable={true} {text} {content}  />
         {/if}
     {/each}
     

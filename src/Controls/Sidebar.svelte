@@ -1,6 +1,11 @@
 <script lang="ts">
     import { addGameMarker, debugMarker, setDebugMarker, removeMarker, markers } from '../stores/markerStore';
     import _ from 'lodash';
+    import { MainMap } from '../stores/main';
+    import { gameToMap } from '../utils';
+import MarkerItem from './MarkerItem.svelte';
+
+
 
     let sidebarOpen = true;
 
@@ -48,15 +53,18 @@
 
     function processMultiple() {
         multipleContent.split('\n').forEach(line => {
-            let [x, y, name, content] = line.replace(/\s+/g, '').split(',');
+            let [x, y, name, content] = line.replace(/\s+,\s+/g, '').split(',');
             if(_.isEmpty(name) || _.isEmpty(x) || _.isEmpty(y)) return;
 
             addGameMarker(parseFloat(x) ?? 0, parseFloat(y) ?? 0, name, content);
 
         });
-
-
         multipleContent = null;
+    }
+
+    function gotoMarker(id: number) {
+        let marker = $markers.find(marker => marker.id === id);
+        $MainMap.flyTo(gameToMap(marker.x, marker.y));
     }
 
 
@@ -107,10 +115,7 @@
         <seperator>Active Markers</seperator>
         <button class="fill" on:click={()=>markers.update(()=>[])}>Clear All</button>
         {#each $markers as marker}
-            <marker-item>
-                <marker-name>{marker.label}</marker-name>
-                <button on:click={()=>removeMarker(marker.id)}>Delete</button>
-            </marker-item>
+            <MarkerItem label={marker.label} on:delete={()=>removeMarker(marker.id)} on:goto={()=>gotoMarker(marker.id)} />
         {/each}
     </sidebar-content>
 </sidebar>
@@ -242,17 +247,6 @@
 
         button.fill {
             width: calc(100%);
-        }
-    }
-
-    marker-item {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        color: white;
-        button {
-            background-color: red;
         }
     }
     split {
